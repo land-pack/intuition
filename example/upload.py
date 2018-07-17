@@ -3,6 +3,7 @@ import time
 from flask import Flask, render_template, jsonify
 from flask import request, send_from_directory, url_for
 from flask_uploads import UploadSet, configure_uploads, IMAGES
+from PIL import Image
 
 
 app = Flask(__name__)
@@ -10,7 +11,33 @@ app = Flask(__name__)
 photos = UploadSet('photos', IMAGES)
 
 app.config['UPLOADED_PHOTOS_DEST'] = 'static/img'
+app.config['UPLOADED_PREVIEW_DEST'] = 'static/preview'
 configure_uploads(app, photos)
+
+def imageResizer(im, pixellimit):
+
+  width, height = im.size
+
+  if width > height:
+    #Land scape mode. Scale to width.
+
+    aspectRatio = float(height)/float(width)
+    Scaledwidth = pixellimit
+    Scaledheight = int(round(Scaledwidth * aspectRatio))
+    newSize = (Scaledwidth, Scaledheight)
+  elif height > width:
+    #Portrait mode, Scale to height.
+    aspectRatio = float(width)/float(height)
+    Scaledheight = pixellimit
+    Scaledwidth = int(round(Scaledheight * aspectRatio))
+    newSize = (Scaledwidth, Scaledheight)
+
+  #FAILS RIGHT HERE... I double checked by writing print flags all over, and it so happens nothing past this line gets written
+  imageThumbnail = im.resize(newSize)
+
+  return imageThumbnail
+
+
 
 @app.route('/')
 @app.route('/index')
@@ -41,9 +68,18 @@ def api_preview():
 
 @app.route('/api/upload', methods=['POST'])
 def api_upload():
-    if 'photo' in request.files:
+    file = request.files
+    if 'photo' in file:
+        image = Image.open(file['photo'])
+        imageThumbnail = imageResizer(image, 200)
+        print(type(imageThumbnail))
+        print(request.files['photo'])
         image_id = photos.save(request.files['photo'], name='o_.png')
-        return jsonify(image_id=image_id, status=100, info='ok')
+        preview_id = imageThumbnail.save(os.path.join(
+        app.config['UPLOADED_PREVIEW_DEST'], 'xxx.png'))
+        return jsonify(image_id=image_id, preview_id= preview_id,status=100, info='ok')
+    else:
+        return jsonify(status=101, info='failure')
 
 
 if __name__ == '__main__':
