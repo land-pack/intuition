@@ -1,4 +1,5 @@
 import os
+import copy
 import time
 from flask import Flask, render_template, jsonify
 from flask import request, send_from_directory, url_for
@@ -9,6 +10,7 @@ from PIL import Image
 app = Flask(__name__)
 
 photos = UploadSet('photos', IMAGES)
+preview = UploadSet('preview', IMAGES)
 
 app.config['UPLOADED_PHOTOS_DEST'] = 'static/img'
 app.config['UPLOADED_PREVIEW_DEST'] = 'static/preview'
@@ -42,14 +44,14 @@ def imageResizer(im, pixellimit):
 @app.route('/')
 @app.route('/index')
 def show_index():
-    images = os.listdir(app.config['UPLOADED_PHOTOS_DEST'])
+    images = os.listdir(app.config['UPLOADED_PREVIEW_DEST'])
     return render_template("index.html", images = images)
 
 
 
 @app.route('/preview/<image_id>')
 def preview(image_id):
-    return send_from_directory(app.config['UPLOADED_PHOTOS_DEST'], image_id)
+    return send_from_directory(app.config['UPLOADED_PREVIEW_DEST'], image_id)
 
 @app.route('/upload', methods=['GET', 'POST'])
 def upload():
@@ -61,23 +63,23 @@ def upload():
 
 @app.route('/api/preview')
 def api_preview():
-    images = os.listdir(app.config['UPLOADED_PHOTOS_DEST'])
+    images = os.listdir(app.config['UPLOADED_PREVIEW_DEST'])
     images_url = [url_for('preview', image_id=image_id) for image_id in images]
     return jsonify(items=len(images_url), images=images_url,
         status=100, info='ok')
 
 @app.route('/api/upload', methods=['POST'])
 def api_upload():
-    file = request.files
-    if 'photo' in file:
-        image = Image.open(file['photo'])
+    if 'photo' in request.files:
+        image = Image.open(request.files['photo'])
         imageThumbnail = imageResizer(image, 200)
-        print(type(imageThumbnail))
-        print(request.files['photo'])
-        image_id = photos.save(request.files['photo'], name='o_.png')
-        preview_id = imageThumbnail.save(os.path.join(
-        app.config['UPLOADED_PREVIEW_DEST'], 'xxx.png'))
-        return jsonify(image_id=image_id, preview_id= preview_id,status=100, info='ok')
+        image_name = request.files['photo'].filename
+        imageThumbnail.save(os.path.join(
+        app.config['UPLOADED_PREVIEW_DEST'], image_name))
+
+        image.save(os.path.join(
+        app.config['UPLOADED_PHOTOS_DEST'], image_name))
+        return jsonify(image_id=image_name,status=100, info='ok')
     else:
         return jsonify(status=101, info='failure')
 
