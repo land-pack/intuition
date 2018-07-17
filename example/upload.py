@@ -18,12 +18,6 @@ def show_index():
     images = os.listdir(app.config['UPLOADED_PHOTOS_DEST'])
     return render_template("index.html", images = images)
 
-@app.route('/api/preview')
-def api_preview():
-    images = os.listdir(app.config['UPLOADED_PHOTOS_DEST'])
-    images_url = [url_for('preview', image_id=image_id) for image_id in images]
-    return jsonify(items=len(images_url), images=images_url)
-
 
 
 @app.route('/preview/<image_id>')
@@ -36,6 +30,20 @@ def upload():
         origin = photos.save(request.files['photo'], name='origin_.png')
         return origin
     return render_template('upload.html')
+
+
+@app.route('/api/preview')
+def api_preview():
+    images = os.listdir(app.config['UPLOADED_PHOTOS_DEST'])
+    images_url = [url_for('preview', image_id=image_id) for image_id in images]
+    return jsonify(items=len(images_url), images=images_url,
+        status=100, info='ok')
+
+@app.route('/api/upload', methods=['POST'])
+def api_upload():
+    if 'photo' in request.files:
+        image_id = photos.save(request.files['photo'], name='o_.png')
+        return jsonify(image_id=image_id, status=100, info='ok')
 
 
 if __name__ == '__main__':
