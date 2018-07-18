@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Index</title>
+</head>
+<body>
+    {% for i in images %}
+        <a href="{{i[0]}}"><img src="{{ i[1] }}"></a>
+    {% endfor %}
+</body>
+</html>

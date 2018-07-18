@@ -32,8 +32,8 @@ def api_preview():
     # List all origin image by it's name
     images = os.listdir(app.config['UPLOADED_PHOTOS_SCALE_100'])
     images_url = [
-        (url_for('preview', scale=100 ,image_id= image_id),
-        url_for('preview', scale=20, image_id= image_id))
+        (url_for('preview', scale=100 ,image_id= image_id, _external=True),
+        url_for('preview', scale=20, image_id= image_id, _external=True))
     for image_id in images]
 
 
@@ -56,4 +56,4 @@ def api_upload():
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, port=5001)
