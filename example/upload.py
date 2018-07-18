@@ -1,4 +1,5 @@
 import os
+import requests
 import copy
 import time
 from flask import Flask, render_template, jsonify
@@ -14,6 +15,11 @@ preview = UploadSet('preview', IMAGES)
 
 app.config['UPLOADED_PHOTOS_DEST'] = 'static/img'
 app.config['UPLOADED_PREVIEW_DEST'] = 'static/preview'
+
+app.config['UPLOADED_PHOTOS_SCALE_100'] = 'static/images/scale_100'
+app.config['UPLOADED_PHOTOS_SCALE_50'] = 'static/images/scale_50'
+app.config['UPLOADED_PHOTOS_SCALE_20'] = 'static/images/scale_20'
+
 configure_uploads(app, photos)
 
 def imageResizer(im, pixellimit):
@@ -44,14 +50,23 @@ def imageResizer(im, pixellimit):
 @app.route('/')
 @app.route('/index')
 def show_index():
-    images = os.listdir(app.config['UPLOADED_PREVIEW_DEST'])
-    return render_template("index.html", images = images)
+    # images = os.listdir(app.config['UPLOADED_PREVIEW_DEST'])
+    # r = requests.get('http://127.0.0.1:5000/api/preview')
+    # print(r.status_code)
+    # if r.status_code == 200:
+    # data = r.json()
+    # images = data.get('images')
+    # print(images)
+    return render_template("index.html")
 
 
 
-@app.route('/preview/<image_id>')
-def preview(image_id):
-    return send_from_directory(app.config['UPLOADED_PREVIEW_DEST'], image_id)
+@app.route('/preview/<scale>/<image_id>')
+def preview(scale, image_id):
+    if str(scale) == '100':
+        return send_from_directory(app.config['UPLOADED_PHOTOS_SCALE_100'], image_id)
+    else:
+        return send_from_directory(app.config['UPLOADED_PHOTOS_SCALE_20'], image_id)
 
 @app.route('/upload', methods=['GET', 'POST'])
 def upload():
@@ -63,8 +78,14 @@ def upload():
 
 @app.route('/api/preview')
 def api_preview():
-    images = os.listdir(app.config['UPLOADED_PREVIEW_DEST'])
-    images_url = [url_for('preview', image_id=image_id) for image_id in images]
+    # List all origin image by it's name
+    images = os.listdir(app.config['UPLOADED_PHOTOS_SCALE_100'])
+    images_url = [
+        (url_for('preview', scale=100 ,image_id= image_id),
+        url_for('preview', scale=20, image_id= image_id))
+    for image_id in images]
+
+
     return jsonify(items=len(images_url), images=images_url,
         status=100, info='ok')
 
@@ -74,12 +95,13 @@ def api_upload():
         image = Image.open(request.files['photo'])
         imageThumbnail = imageResizer(image, 200)
         image_name = request.files['photo'].filename
+        # pre_name = 'pre_{}'.format(image_name)
         imageThumbnail.save(os.path.join(
-        app.config['UPLOADED_PREVIEW_DEST'], image_name))
-
+        app.config['UPLOADED_PHOTOS_SCALE_20'], image_name))
+        # ori_name = 'ori_{}'.format(image_name)
         image.save(os.path.join(
-        app.config['UPLOADED_PHOTOS_DEST'], image_name))
-        return jsonify(image_id=image_name,status=100, info='ok')
+        app.config['UPLOADED_PHOTOS_SCALE_100'], image_name))
+        return jsonify(image_id=image_name, status=100, info='ok')
     else:
         return jsonify(status=101, info='failure')
 

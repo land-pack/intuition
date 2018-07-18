@@ -4,8 +4,8 @@
     <title>Index</title>
 </head>
 <body>
-    {% for _image in images %}
-    <img src="{{ url_for('preview', image_id=_image) }}" alt="User Image">
+    {% for i in images %}
+    <a href="{{i[1]}}"><img src="{{ i[0] }}"></a>
     {% endfor %}
 </body>
 </html>
